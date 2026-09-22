@@ -1,0 +1,699 @@
+/* ============================================================
+   Noisy TeraBox Downloader
+   Tema: dark zinc terkunci + satu aksen emerald. Glassmorphism
+   adalah approximation web (bukan Apple Liquid Glass resmi).
+   ============================================================ */
+
+:root {
+  --bg: #09090b;                 /* zinc-950, bukan pure black */
+  --surface: rgba(24, 24, 27, 0.55);
+  --surface-solid: #18181b;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #f4f4f5;               /* zinc-100 */
+  --text-dim: #a1a1aa;           /* zinc-400 */
+  --accent: #34d399;             /* emerald-400 */
+  --accent-deep: #10b981;        /* emerald-500 */
+  --accent-ink: #052e22;
+  --danger: #f87171;
+  --radius: 14px;
+  --radius-pill: 999px;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-display);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100dvh;
+}
+
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* ---------- Background video stage ---------- */
+.bg-stage {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: var(--bg);
+}
+.bg-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.42;
+  /*
+    will-change + translateZ mengangkat video ke layer GPU sendiri. Tanpa ini
+    compositor harus me-repaint video full-viewport di belakang elemen
+    ber-backdrop-filter setiap frame scroll — sumber utama scroll tersendat.
+  */
+  will-change: transform;
+  transform: translateZ(0);
+}
+.bg-scrim {
+  position: absolute;
+  inset: 0;
+  /*
+    Dulu berhenti di var(--bg) penuh di bawah — artinya di belakang footer
+    cuma warna solid, dan backdrop-filter sekuat apa pun tetap terlihat
+    opaque (blur atas warna datar = warna datar). Sekarang menyisakan
+    sedikit video di bagian bawah supaya footer punya "isi" untuk dibias,
+    sama seperti header yang di belakangnya video masih kelihatan.
+  */
+  background:
+    radial-gradient(120% 90% at 50% 0%, transparent 30%, rgba(9, 9, 11, 0.82) 100%),
+    linear-gradient(180deg, rgba(9, 9, 11, 0.5) 0%, rgba(9, 9, 11, 0.78) 72%, rgba(9, 9, 11, 0.88) 100%);
+}
+/*
+  Grain sebelumnya `position: fixed` + inset 0, jadi lebar viewport.
+  Digabung dengan video dan scrim, itu tiga layer full-viewport yang harus
+  dikomposit ulang tiap frame. Sekarang: absolute (bukan fixed) supaya ikut
+  ter-promote ke layer video yang sudah ada, dan z-index 1 supaya tetap di
+  atas video tapi di bawah konten. Teksturnya tetap SVG feTurbulence inline
+  yang sama seperti sebelumnya.
+*/
+.bg-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- Nav (glass) ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 clamp(16px, 4vw, 48px);
+  /* bening total: tidak ada fill, hanya blur tipis agar teks terbaca */
+  background: transparent;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  /* mengangkat nav ke layer sendiri supaya blur tidak dihitung ulang tiap frame */
+  transform: translateZ(0);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--accent-deep);
+  color: var(--accent-ink);
+  font-size: 16px;
+}
+.brand-name { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+.brand-accent { color: var(--accent); margin-left: 5px; }
+
+.nav-links { display: flex; gap: 28px; }
+.nav-links a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.25s var(--ease-out);
+}
+.nav-links a:hover { color: var(--text); }
+
+/* ---------- Hero ---------- */
+.hero {
+  min-height: calc(100dvh - 64px);
+  display: flex;
+  align-items: center;
+  padding: clamp(32px, 6vh, 72px) clamp(16px, 4vw, 48px) 96px;
+}
+.hero-inner {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.85fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+}
+
+/* entry choreography: hero anak-anak naik bertahap */
+.hero-copy > * {
+  opacity: 0;
+  transform: translateY(26px);
+  animation: rise 0.9s var(--ease-out) forwards;
+}
+.hero-copy > *:nth-child(1) { animation-delay: 0.12s; }
+.hero-copy > *:nth-child(2) { animation-delay: 0.22s; }
+.hero-copy > *:nth-child(3) { animation-delay: 0.34s; }
+.hero-copy > *:nth-child(4) { animation-delay: 0.46s; }
+.result-panel {
+  opacity: 0;
+  transform: translateY(26px);
+  animation: rise 0.9s var(--ease-out) 0.6s forwards;
+}
+@keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 22px;
+}
+.chip-live i { color: var(--accent); font-size: 14px; }
+
+.hero-title {
+  font-size: clamp(2.1rem, 5vw, 3.6rem);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+}
+.accent-text { color: var(--accent); }
+
+.hero-sub {
+  margin-top: 18px;
+  max-width: 46ch;
+  color: var(--text-dim);
+  font-size: clamp(0.98rem, 1.4vw, 1.08rem);
+}
+
+/* ---------- Form ---------- */
+.dl-form {
+  margin-top: 34px;
+  display: grid;
+  gap: 12px;
+}
+.field { display: grid; gap: 8px; }
+.field > label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 5px 5px 5px 14px;
+  transition: border-color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+}
+.input-row:focus-within {
+  border-color: var(--accent-deep);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.18);
+}
+.input-icon { color: var(--text-dim); font-size: 17px; display: grid; place-items: center; }
+.input-row input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  padding: 11px 4px;
+}
+.input-row input::placeholder { color: #71717a; }
+.input-row.is-error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15); }
+
+.btn-paste {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.15s var(--ease-out);
+}
+.btn-paste:hover { color: var(--text); border-color: var(--line-strong); background: rgba(255, 255, 255, 0.05); }
+.btn-paste:active { transform: scale(0.96); }
+.btn-paste i { font-size: 15px; }
+
+.field-error {
+  color: var(--danger);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- Buttons ---------- */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+  text-decoration: none;
+  border-radius: var(--radius);
+  padding: 15px 26px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 10px 32px rgba(16, 185, 129, 0.28);
+  transition: transform 0.18s var(--ease-out), box-shadow 0.25s var(--ease-out), filter 0.2s;
+  width: fit-content;
+}
+.btn-primary:hover { transform: translateY(-2px); filter: brightness(1.05); }
+.btn-primary:active { transform: translateY(0) scale(0.98); }
+.btn-primary i { font-size: 17px; }
+/*
+  Tombol ini <a>, bukan <button>. Tanpa aturan di bawah, perilaku bawaan
+  browser ikut berlaku: garis bawah pada teks dan warna link (biru/ungu)
+  yang menimpa color tombol. Ketiga properti ini yang menghilangkannya.
+*/
+.btn-primary,
+.btn-primary:link,
+.btn-primary:visited,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  text-decoration: none;
+  -webkit-text-decoration: none;
+}
+.btn-primary:disabled {
+  cursor: wait;
+  filter: saturate(0.5) brightness(0.75);
+  transform: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px 22px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s var(--ease-out);
+}
+.btn-ghost:link,
+.btn-ghost:visited,
+.btn-ghost:hover,
+.btn-ghost:focus,
+.btn-ghost:active { text-decoration: none; }
+.btn-ghost:hover { border-color: var(--accent-deep); background: rgba(16, 185, 129, 0.08); }
+.btn-ghost:active { transform: scale(0.97); }
+
+/* kedua tombol aksi di panel hasil: isi penuh kolomnya, teks tetap rata tengah */
+.rc-btn {
+  display: flex;
+  width: 100%;
+  padding: 13px 20px;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+/* ---------- Result panel ----------
+   Semi-transparan tanpa blur: video tetap tembus samar, teks tetap aman
+   terbaca, dan tidak ada biaya backdrop-filter saat scroll. */
+.result-panel {
+  position: relative;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    rgba(15, 15, 18, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 24px 70px rgba(0, 0, 0, 0.45);
+  padding: 26px;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+.result-empty {
+  margin: auto;
+  text-align: center;
+  color: var(--text-dim);
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+.result-empty i {
+  font-size: 46px;
+  color: var(--accent);
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+.result-empty p { font-size: 14px; max-width: 24ch; }
+
+/* skeleton loading */
+.result-skeleton { display: grid; gap: 12px; align-content: start; }
+.sk-line, .sk-block {
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(63,63,70,.35) 25%, rgba(82,82,91,.55) 50%, rgba(63,63,70,.35) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+.sk-line { height: 13px; }
+.sk-w40 { width: 40%; } .sk-w70 { width: 70%; } .sk-w55 { width: 55%; } .sk-w30 { width: 30%; }
+.sk-block { height: 130px; border-radius: 12px; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.sk-status {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--accent);
+  margin-top: 8px;
+}
+.sk-status::after {
+  content: "";
+  animation: dots 1.4s steps(4, end) infinite;
+}
+@keyframes dots {
+  0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; }
+}
+
+/* result card: daftar file dalam satu panel, scroll bila banyak */
+.result-card { display: grid; gap: 14px; align-content: start; }
+.rc-list {
+  display: grid;
+  gap: 12px;
+  max-height: 430px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  padding-right: 4px;
+}
+.rc-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+.rc-head { display: flex; gap: 14px; align-items: center; }
+.rc-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  color: var(--accent);
+  font-size: 22px;
+}
+.rc-name {
+  font-weight: 600;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 34ch;
+}
+.rc-size { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-dim); }
+
+.rc-preview {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #000;
+}
+.rc-preview video { width: 100%; display: block; max-height: 220px; }
+
+.rc-actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.rc-note { font-size: 12.5px; color: var(--text-dim); }
+.rc-note strong { color: var(--accent); font-weight: 600; }
+
+/* ---------- Sections ---------- */
+.section { padding: clamp(72px, 12vh, 128px) clamp(16px, 4vw, 48px); }
+.section-inner { max-width: 1120px; margin: 0 auto; }
+.section-narrow { max-width: 760px; }
+.section-title {
+  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+.section-sub { color: var(--text-dim); margin-top: 12px; max-width: 52ch; }
+
+/* steps: tiga kolom rata, tanpa penghubung */
+.steps {
+  margin-top: clamp(40px, 6vh, 64px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: start;
+  gap: clamp(24px, 4vw, 48px);
+}
+.step {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  max-width: 320px;
+}
+.step-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--accent);
+}
+.step h3 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.step p { font-size: 14.5px; color: var(--text-dim); }
+
+/* ---------- Marquee domain ---------- */
+.section-marquee { padding-bottom: clamp(72px, 12vh, 128px); overflow: hidden; }
+.marquee {
+  margin-top: 44px;
+  position: relative;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee-track {
+  display: flex;
+  gap: 14px;
+  width: max-content;
+  animation: pan 28s linear infinite;
+}
+.marquee:hover .marquee-track { animation-play-state: paused; }
+@keyframes pan { to { transform: translateX(-50%); } }
+/*
+  padding sempat hilang di sini: tanpa itu teks dan ikon menempel ke border.
+  `contain: paint` membatasi area repaint pill saat marquee bergerak.
+*/
+.dom-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  white-space: nowrap;
+  contain: paint;
+}
+.dom-pill i { color: var(--accent-deep); font-size: 14px; flex: none; }
+
+/* ---------- FAQ accordion (animasi buka/tutup smooth) ---------- */
+.faq-list { margin-top: 36px; display: grid; }
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-item:first-child { border-top: 1px solid var(--line); }
+.faq-q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text);
+  padding: 18px 4px;
+  transition: color 0.25s var(--ease-out);
+}
+.faq-q:hover { color: var(--accent); }
+.faq-q i {
+  font-size: 18px;
+  color: var(--text-dim);
+  flex: none;
+  transition: transform 0.45s var(--ease-out), color 0.25s;
+}
+.faq-item.open .faq-q i { transform: rotate(135deg); color: var(--accent); }
+.faq-a {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease-out);
+}
+.faq-item.open .faq-a { grid-template-rows: 1fr; }
+.faq-a-inner { overflow: hidden; min-height: 0; }
+.faq-a-inner p {
+  color: var(--text-dim);
+  font-size: 14.5px;
+  max-width: 62ch;
+  padding: 0 4px 20px;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.4s var(--ease-out) 0.08s, transform 0.4s var(--ease-out) 0.08s;
+}
+.faq-item.open .faq-a-inner p { opacity: 1; transform: translateY(0); }
+.faq-a-inner code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  color: var(--accent);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* ---------- Footer (glass) ---------- */
+.footer {
+  position: relative;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  /* bening total, sama seperti nav */
+  background: transparent;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 40px clamp(16px, 4vw, 48px);
+  transform: translateZ(0);
+}
+.footer-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.footer-note { margin-top: 10px; font-size: 12.5px; color: var(--text-dim); max-width: 44ch; }
+.footer-credit { font-size: 13px; color: var(--text-dim); }
+.credit-name { color: var(--accent); font-weight: 600; }
+
+/* ---------- Scroll reveal ----------
+   Dulu pakai transition pada opacity+transform. Masalahnya: elemen tetap
+   membawa properti itu setelah animasi selesai, jadi browser terus
+   memantau dan me-repaint mereka selama scroll. Dengan animation +
+   forwards, properti bebas lagi begitu animasi kelar, sehingga elemen
+   kembali jadi layer statis biasa dan scroll jadi ringan. */
+.reveal { opacity: 0; }
+.reveal.in {
+  animation: reveal-in 0.7s var(--ease-out) forwards;
+}
+.reveal.in[data-delay="1"] { animation-delay: 0.1s; }
+.reveal.in[data-delay="2"] { animation-delay: 0.2s; }
+@keyframes reveal-in {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Spinner on submit button ---------- */
+.btn-primary .spin {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(5, 46, 34, 0.3);
+  border-top-color: var(--accent-ink);
+  animation: rot 0.7s linear infinite;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
+
+/* ---------- Mobile collapse ---------- */
+@media (max-width: 900px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .result-panel { min-height: 0; }
+  .steps { grid-template-columns: 1fr; gap: 36px; }
+}
+@media (max-width: 640px) {
+  .nav-links { gap: 16px; }
+  .nav-links a { font-size: 13px; }
+  .dl-form { grid-template-columns: 1fr; }
+  .btn-paste span { display: none; }
+  .btn-paste { padding: 9px 11px; }
+  .rc-actions { grid-template-columns: 1fr; }
+  .rc-name { max-width: 22ch; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+  .hero-copy > *, .result-panel { opacity: 1; transform: none; animation: none; }
+  .reveal { opacity: 1; transform: none; animation: none; }
+  .marquee-track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
+  .bg-video { display: none; }
+  .bg-stage { background: radial-gradient(80% 60% at 50% 0%, #10231d 0%, var(--bg) 70%); }
+}
+
+/*
+  ---------- Reduced transparency ----------
+  Tidak ada override di sini lagi: permintaan desainnya justru "semua
+  permukaan transparan". Kueri ini aktif di mesin ini (melaporkan
+  `reduce`), jadi setiap aturan solid di dalamnya akan membuat elemen
+  kembali pekat walau CSS utamanya transparan. Teks tetap terbaca karena
+  latar halaman segelap ini dan scrim video menjaga kontras.
+*/

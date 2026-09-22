@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noisy TeraBox Downloader</title>
+  <meta name="description" content="Unduh file TeraBox gratis, cepat, tanpa login dan tanpa aplikasi tambahan." />
+  <link rel="stylesheet" href="/fonts/space-grotesk/latin-400.css" />
+  <link rel="stylesheet" href="/fonts/space-grotesk/latin-500.css" />
+  <link rel="stylesheet" href="/fonts/space-grotesk/latin-600.css" />
+  <link rel="stylesheet" href="/fonts/space-grotesk/latin-700.css" />
+  <link rel="stylesheet" href="/fonts/jetbrains-mono/latin-400.css" />
+  <link rel="stylesheet" href="/fonts/jetbrains-mono/latin-500.css" />
+  <link rel="stylesheet" href="/phosphor/regular/style.css" />
+  <link rel="stylesheet" href="/phosphor/bold/style.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2309090b'/%3E%3Cpath d='M16 7v12m0 0 5-5m-5 5-5-5M8 25h16' stroke='%2334d399' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E" />
+</head>
+<body>
+
+  <!-- Background video 3D -->
+  <div class="bg-stage" aria-hidden="true">
+    <video id="bgVideo" class="bg-video" autoplay muted loop playsinline preload="metadata">
+      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260701_083907_581a119a-89b7-4c9f-a6ef-560625e0086f.mp4" type="video/mp4" />
+    </video>
+    <div class="bg-scrim"></div>
+    <div class="bg-grain"></div>
+  </div>
+
+  <header class="nav" id="top">
+    <a class="brand" href="#top">
+      <span class="brand-mark"><i class="ph-bold ph-download-simple"></i></span>
+      <span class="brand-name">Noisy<span class="brand-accent">TeraBox</span></span>
+    </a>
+    <nav class="nav-links" aria-label="Navigasi utama">
+      <a href="#cara">Cara Kerja</a>
+      <a href="#format">Format Link</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ===================== HERO ===================== -->
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <span class="chip chip-live"><i class="ph ph-lightning"></i> Gratis, tanpa login</span>
+          <h1 class="hero-title">Unduh file TeraBox<br /><span class="accent-text">langsung di browser.</span></h1>
+          <p class="hero-sub">Tempel link berbagi TeraBox, satu klik selesai. Tanpa aplikasi, tanpa antre, tanpa watermark.</p>
+
+          <form class="dl-form" id="dlForm" autocomplete="off" novalidate>
+            <div class="field">
+              <label for="urlInput">Link TeraBox</label>
+              <div class="input-row">
+                <span class="input-icon"><i class="ph ph-link"></i></span>
+                <input id="urlInput" name="url" type="url" inputmode="url"
+                  placeholder="https://terabox.com/s/..." spellcheck="false" />
+                <button type="button" class="btn-paste" id="btnPaste" title="Tempel dari clipboard">
+                  <i class="ph ph-clipboard"></i><span>Tempel</span>
+                </button>
+              </div>
+              <p class="field-error" id="formError" role="alert" hidden></p>
+            </div>
+            <button type="submit" class="btn-primary" id="btnSubmit">
+              <span class="btn-label">Ambil File</span>
+              <i class="ph-bold ph-arrow-down"></i>
+            </button>
+          </form>
+        </div>
+
+        <!-- Panel hasil / skeleton -->
+        <aside class="result-panel" id="resultPanel" aria-live="polite">
+          <div class="result-empty" id="resultEmpty">
+            <i class="ph-bold ph-cloud-arrow-down"></i>
+            <p>Hasil unduhan muncul di sini</p>
+          </div>
+
+          <div class="result-skeleton" id="resultSkeleton" hidden>
+            <div class="sk-line sk-w40"></div>
+            <div class="sk-block"></div>
+            <div class="sk-line sk-w70"></div>
+            <div class="sk-line sk-w55"></div>
+            <div class="sk-line sk-w30"></div>
+            <span class="sk-status">Menghubungi server TeraBox...</span>
+          </div>
+
+          <div class="result-card" id="resultCard" hidden>
+            <div class="rc-list" id="rcList"></div>
+            <p class="rc-note" id="rcNote" hidden></p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ===================== CARA KERJA ===================== -->
+    <section class="section" id="cara">
+      <div class="section-inner">
+        <h2 class="section-title reveal">Tiga langkah, selesai.</h2>
+        <div class="steps">
+          <div class="step reveal" data-delay="0">
+            <span class="step-icon"><i class="ph-bold ph-clipboard-text"></i></span>
+            <h3>Tempel link</h3>
+            <p>Salin link berbagi dari aplikasi TeraBox, lalu tempel di kolom atas.</p>
+          </div>
+          <div class="step reveal" data-delay="1">
+            <span class="step-icon"><i class="ph-bold ph-cpu"></i></span>
+            <h3>Proses otomatis</h3>
+            <p>Sistem mengambil metadata file dan menautkan alamat unduh langsung.</p>
+          </div>
+          <div class="step reveal" data-delay="2">
+            <span class="step-icon"><i class="ph-bold ph-tray-arrow-down"></i></span>
+            <h3>Unduh atau stream</h3>
+            <p>Tekan tombolnya. Bisa langsung diputar juga tanpa unduh dulu.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== FORMAT LINK (marquee) ===================== -->
+    <section class="section section-marquee" id="format">
+      <div class="section-inner">
+        <h2 class="section-title reveal">Semua domain berbagi TeraBox didukung</h2>
+        <p class="section-sub reveal">Link dari mana pun salinan domainnya tetap dikenali.</p>
+      </div>
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee-track" id="marqueeTrack"></div>
+      </div>
+    </section>
+
+    <!-- ===================== FAQ ===================== -->
+    <section class="section" id="faq">
+      <div class="section-inner section-narrow">
+        <h2 class="section-title reveal">Pertanyaan umum</h2>
+        <div class="faq-list reveal">
+          <div class="faq-item">
+            <button class="faq-q" type="button" aria-expanded="false">
+              <span>Apakah layanan ini benar-benar gratis?</span>
+              <i class="ph-bold ph-plus"></i>
+            </button>
+            <div class="faq-a"><div class="faq-a-inner">
+              <p>Ya. Tidak ada biaya, tidak ada login, dan tidak ada batasan kecepatan dari sisi kami.</p>
+            </div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button" aria-expanded="false">
+              <span>Kenapa prosesnya kadang lama?</span>
+              <i class="ph-bold ph-plus"></i>
+            </button>
+            <div class="faq-a"><div class="faq-a-inner">
+              <p>Pengambilan link bergantung pada respons server TeraBox. Saat sedang padat, percobaan ulang biasanya langsung berhasil.</p>
+            </div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button" aria-expanded="false">
+              <span>Apakah file saya tersimpan di server ini?</span>
+              <i class="ph-bold ph-plus"></i>
+            </button>
+            <div class="faq-a"><div class="faq-a-inner">
+              <p>Tidak. Server ini hanya membantu menautkan alamat unduh. File tetap berada di akun TeraBox pemilik link.</p>
+            </div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button" aria-expanded="false">
+              <span>Link jenis apa yang bisa dipakai?</span>
+              <i class="ph-bold ph-plus"></i>
+            </button>
+            <div class="faq-a"><div class="faq-a-inner">
+              <p>Link berbagi berupa <code>/s/...</code> dari semua domain TeraBox, termasuk cerminannya seperti 4funbox dan mirrobox.</p>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <a class="brand" href="#top">
+          <span class="brand-mark"><i class="ph-bold ph-download-simple"></i></span>
+          <span class="brand-name">Noisy<span class="brand-accent">TeraBox</span></span>
+        </a>
+        <p class="footer-note">Tidak berafiliasi dengan TeraBox. Gunakan hanya pada file yang Anda miliki haknya.</p>
+      </div>
+      <p class="footer-credit">Scraper engine oleh <span class="credit-name">Noisy</span></p>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
