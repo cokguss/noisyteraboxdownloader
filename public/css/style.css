@@ -1715,7 +1715,10 @@ body {
 .chat__panel {
   pointer-events: auto;
   width: min(360px, calc(100vw - 28px));
+  /* jangan pernah lebih tinggi dari viewport: dvh dipakai, vh sebagai fallback */
   height: min(520px, calc(100dvh - 120px));
+  max-height: calc(100dvh - 120px);
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   border-radius: 18px;
@@ -1727,6 +1730,12 @@ body {
   transform: translateY(16px) scale(0.97);
   transform-origin: bottom right;
   transition: opacity 0.26s var(--ease-out), transform 0.26s var(--ease-out);
+}
+@supports not (height: 100dvh) {
+  .chat__panel {
+    height: min(520px, calc(100vh - 120px));
+    max-height: calc(100vh - 120px);
+  }
 }
 .chat__panel.is-in { opacity: 1; transform: none; }
 
@@ -1780,6 +1789,7 @@ body {
 
 .chat__log {
   flex: 1;
+  min-height: 160px;
   overflow-y: auto;
   padding: 14px;
   display: flex;
@@ -1866,7 +1876,15 @@ body {
 
 @media (max-width: 640px) {
   .chat { place-items: end center; padding-bottom: calc(14px + 60px); }
-  .chat__panel { transform-origin: bottom center; width: calc(100vw - 20px); height: min(560px, calc(100dvh - 110px)); }
+  .chat__panel {
+    transform-origin: bottom center;
+    width: calc(100vw - 20px);
+    height: min(560px, calc(100dvh - 110px));
+    max-height: calc(100dvh - 110px);
+  }
+  @supports not (height: 100dvh) {
+    .chat__panel { height: min(560px, calc(100vh - 110px)); max-height: calc(100vh - 110px); }
+  }
 }
 
 /* paragraf pengantar & penjelasan di dalam kolom panduan cookie */
