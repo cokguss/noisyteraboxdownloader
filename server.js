@@ -7,7 +7,7 @@
 const path = require('path');
 const express = require('express');
 const axios = require('axios');
-const { ZipArchive } = require('archiver');
+const archiver = require('archiver');
 const { PassThrough } = require('stream');
 
 const app = express();
@@ -641,7 +641,7 @@ app.get('/api/zip', async (req, res) => {
     if (safe.length === 0) return res.status(400).json({ success: false, message: 'Sesi kedaluwarsa atau tidak ada file untuk diarsipkan.' });
 
     let fetched = 0;
-    const archive = new ZipArchive({ zlib: { level: 0 } }); // stream gambar: kompresi cuma buang CPU
+    const archive = archiver('zip', { zlib: { level: 0 } }); // stream gambar: kompresi cuma buang CPU
     archive.on('error', () => res.destroy());
 
     const zipName = `terabox-${Date.now()}.zip`;
@@ -865,6 +865,15 @@ app.get('/api/stream', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Noisy TeraBox Downloader jalan di http://localhost:${PORT}`);
-});
+/*
+ * Vercel (@vercel/node) memakai ekspor app ini sebagai handler lambda —
+ * listen() hanya boleh jalan saat dijalankan langsung (lokal/VPS),
+ * bukan saat modul dimuat oleh runtime serverless.
+ */
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Noisy TeraBox Downloader jalan di http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;

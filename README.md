@@ -81,7 +81,6 @@ Buka **http://localhost:3000**
 ```text
 noisyteraboxdownloader/
 ├─ server.js              # Express API: /api/download, /api/zip, /api/file, /api/stream
-├─ share-store.js         # penyimpanan sesi share
 ├─ public/
 │  ├─ index.html          # halaman utama (single page)
 │  ├─ css/style.css       # seluruh styling (tema emerald + zinc-950)
