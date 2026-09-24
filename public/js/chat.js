@@ -13,6 +13,8 @@
     "- Gratis, tanpa login, tanpa aplikasi. Cara pakai: tempel link berbagi TeraBox (bentuk /s/xxx atau /sharing/link?surl=xxx, dari domain terabox.com, 1024terabox, teraboxapp, 4funbox, mirrobox, nephobox, momerybox, tibibox, freeterabox, teraboxlink, dm.terabox.app, dll), tekan 'Ambil File', lalu Unduh / Stream / Unduh Semua (zip).",
     "- Mendukung folder berisi video, foto, dan file lain. Foto diunduh sebagai rendisi kualitas tertinggi yang publik.",
     "- Video kadang 'Terkunci' karena TeraBox memasang verifikasi; solusinya user menempel cookie sesi login (harus berisi BDUSS; nilai ndus saja tidak cukup) di kolom yang muncul, lalu ambil ulang link. Cookie disimpan hanya di localStorage browser user.",
+    "- Cara mengambil cookie & csrfToken (ajarkan langkah ini bila ditanya soal token/verifikasi): buka terabox.com yang sudah login, tekan inspect element / Developer Tools (F12). (a) Cookie: tab Application/Storage > Cookies > pilih https://terabox.com, salin BDUSS, ndus, dan csrfToken. (b) Atau di tab Network pilih filter Doc, klik request halaman, lihat header Cookie. (c) Atau cepat lewat Console: copy(document.cookie) untuk semua cookie, dan copy((document.cookie.match(/csrfToken=([^;]+)/)||[])[1]) khusus csrfToken.",
+    "- Format penggabungan di kolom cookie situs: BDUSS=...; ndus=...; csrfToken=...",
     "- Ada tombol 'Stream' untuk memutar video via HLS tanpa unduh.",
     "- Link unduhan berlaku beberapa jam (token upstream).",
     "- Privasi: tidak menyimpan file, tanpa pelacak/iklan/analitik; hanya memetakan link ke alamat unduh resmi TeraBox.",
