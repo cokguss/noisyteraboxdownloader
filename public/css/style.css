@@ -1667,8 +1667,9 @@ body {
    ============================================================ */
 .chat-fab {
   position: fixed;
-  right: clamp(14px, 3vw, 26px);
-  bottom: clamp(14px, 3vh, 26px);
+  /* safe-area: layar berponi/notch agar ikon tidak tersentuh tepi */
+  right: calc(clamp(14px, 3vw, 26px) + env(safe-area-inset-right, 0px));
+  bottom: calc(clamp(14px, 3vh, 26px) + env(safe-area-inset-bottom, 0px));
   z-index: 80;
   width: 54px;
   height: 54px;
@@ -1875,7 +1876,7 @@ body {
 .chat__send:disabled { opacity: 0.5; cursor: wait; transform: none; }
 
 @media (max-width: 640px) {
-  .chat { place-items: end center; padding-bottom: calc(14px + 60px); }
+  .chat { place-items: end center; padding: 0 calc(10px + env(safe-area-inset-right, 0px)) calc(14px + 60px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px)); }
   .chat__panel {
     transform-origin: bottom center;
     width: calc(100vw - 20px);

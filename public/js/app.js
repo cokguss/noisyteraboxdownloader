@@ -556,6 +556,16 @@
     btn.addEventListener("click", () => openLegal(btn.dataset.legal));
   });
 
+  /* ---------- perbaiki ikon yang hilang setelah pindah tab ----------
+     Chromium kadang membuang font ikon saat tab di background, dan saat
+     kembali glyph tidak digambar ulang sampai repaint dipaksa. */
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    document.body.style.display = "none";
+    void document.body.offsetHeight; /* paksa relayout */
+    document.body.style.display = "";
+  });
+
   /* ---------- paste button ---------- */
   btnPaste.addEventListener("click", async () => {
     try {
