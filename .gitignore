@@ -32,3 +32,11 @@ Thumbs.db
 # Sensitive files (auto-detected)
 node_modules
 
+
+# Debug / lokal
+bundle.js
+chunk.js
+debug.js
+shot*.png
+z2.zip
+.zcodeignore

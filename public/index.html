@@ -14,9 +14,35 @@
   <link rel="stylesheet" href="/phosphor/regular/style.css" />
   <link rel="stylesheet" href="/phosphor/bold/style.css" />
   <link rel="stylesheet" href="/css/style.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2309090b'/%3E%3Cpath d='M16 7v12m0 0 5-5m-5 5-5-5M8 25h16' stroke='%2334d399' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E" />
+  <link rel="icon" href="/img/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16.png" />
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#09090b" />
 </head>
 <body>
+
+  <!-- Preloader: kotak terbuka yang mengisi, chip file berjatuhan -->
+  <div class="loader" id="pageLoader" role="status" aria-live="polite" aria-label="Memuat halaman">
+    <div class="loader__grid" aria-hidden="true"></div>
+    <div class="loader__scene">
+      <div class="loader__box" aria-hidden="true">
+        <span class="loader__flap loader__flap--l"></span>
+        <span class="loader__flap loader__flap--r"></span>
+        <span class="loader__chip loader__chip--1">MP4</span>
+        <span class="loader__chip loader__chip--2">JPG</span>
+        <span class="loader__chip loader__chip--3">ZIP</span>
+        <span class="loader__well">
+          <span class="loader__fill" id="loaderFill"></span>
+        </span>
+      </div>
+      <p class="loader__word">Noisy<span>TeraBox</span></p>
+      <p class="loader__tag">menyiapkan ruang unduh</p>
+      <p class="loader__count" aria-hidden="true"><span id="loaderCount">00</span><em>%</em></p>
+    </div>
+  </div>
+  <noscript><style>.loader{display:none !important}</style></noscript>
 
   <!-- Background video 3D -->
   <div class="bg-stage" aria-hidden="true">
@@ -29,13 +55,14 @@
 
   <header class="nav" id="top">
     <a class="brand" href="#top">
-      <span class="brand-mark"><i class="ph-bold ph-download-simple"></i></span>
+      <span class="brand-mark"><img src="/img/logo.png" alt="" /></span>
       <span class="brand-name">Noisy<span class="brand-accent">TeraBox</span></span>
     </a>
     <nav class="nav-links" aria-label="Navigasi utama">
       <a href="#cara">Cara Kerja</a>
       <a href="#format">Format Link</a>
       <a href="#faq">FAQ</a>
+      <a href="#dev">Developer</a>
     </nav>
   </header>
 
@@ -46,7 +73,7 @@
         <div class="hero-copy">
           <span class="chip chip-live"><i class="ph ph-lightning"></i> Gratis, tanpa login</span>
           <h1 class="hero-title">Unduh file TeraBox<br /><span class="accent-text">langsung di browser.</span></h1>
-          <p class="hero-sub">Tempel link berbagi TeraBox, satu klik selesai. Tanpa aplikasi, tanpa antre, tanpa watermark.</p>
+          <p class="hero-sub">Tempel link berbagi TeraBox, satu klik selesai. Video dan foto dari folder pun ikut terbaca.</p>
 
           <form class="dl-form" id="dlForm" autocomplete="off" novalidate>
             <div class="field">
@@ -67,28 +94,65 @@
             </button>
           </form>
         </div>
+      </div>
+    </section>
 
-        <!-- Panel hasil / skeleton -->
-        <aside class="result-panel" id="resultPanel" aria-live="polite">
-          <div class="result-empty" id="resultEmpty">
-            <i class="ph-bold ph-cloud-arrow-down"></i>
-            <p>Hasil unduhan muncul di sini</p>
+    <!-- ===================== HASIL EKSTRAKSI ===================== -->
+    <section class="section results" id="results" hidden aria-live="polite">
+      <div class="section-inner">
+        <header class="results-head">
+          <div>
+            <h2 class="section-title" id="resultsTitle">File siap diunduh</h2>
+            <p class="section-sub" id="resultsSub"></p>
           </div>
-
-          <div class="result-skeleton" id="resultSkeleton" hidden>
-            <div class="sk-line sk-w40"></div>
-            <div class="sk-block"></div>
-            <div class="sk-line sk-w70"></div>
-            <div class="sk-line sk-w55"></div>
-            <div class="sk-line sk-w30"></div>
-            <span class="sk-status">Menghubungi server TeraBox...</span>
+          <div class="results-actions">
+            <button type="button" class="btn-ghost" id="btnZip" hidden>
+              <span class="btn-label">Unduh Semua</span><i class="ph-bold ph-archive"></i>
+            </button>
+            <button type="button" class="btn-ghost" id="btnClear">
+              <span class="btn-label">Bersihkan</span><i class="ph ph-x"></i>
+            </button>
           </div>
-
-          <div class="result-card" id="resultCard" hidden>
-            <div class="rc-list" id="rcList"></div>
-            <p class="rc-note" id="rcNote" hidden></p>
+        </header>
+        <div class="cookie-strip" id="cookieStrip" hidden>
+          <div class="cookie-strip-text">
+            <i class="ph-bold ph-lock-key"></i>
+            <p><strong>30 video masih terkunci.</strong> Punya akun TeraBox? Tempel cookie sesi (login) Anda untuk membukanya. Tersimpan hanya di browser ini.</p>
           </div>
-        </aside>
+          <div class="cookie-strip-form">
+            <input id="ndusInput" type="text" spellcheck="false" autocomplete="off" placeholder="isi Cookie penuh (BDUSS=...; ndus=...)" aria-label="Cookie sesi login TeraBox" />
+            <button type="button" class="btn-ghost" id="btnApplyNdus"><span class="btn-label">Buka</span><i class="ph-bold ph-key"></i></button>
+          </div>
+          <details class="cookie-help">
+            <summary><i class="ph ph-info"></i>Cara mengambil cookie sesi login</summary>
+            <div class="cookie-help-body">
+              <div class="cookie-help-col">
+                <h4>Di laptop / PC</h4>
+                <ol>
+                  <li>Buka <b>terabox.com</b> dan <b>login</b> ke akun Anda.</li>
+                  <li>Tekan <b>F12</b> &gt; tab <b>Console</b>. (Kalau diminta, ketik <code>allow pasting</code> dulu.)</li>
+                  <li>Tempel baris ini lalu tekan Enter:
+                    <div class="code-copy"><code id="ndusSnippet">copy(document.cookie)</code><button type="button" class="btn-copy" id="btnCopySnippet" aria-label="Salin perintah"><i class="ph ph-copy"></i></button></div>
+                  </li>
+                  <li>String cookie <b>otomatis tersalin</b>. Tinggal tempel (Ctrl+V) ke kolom di atas, tekan <b>Buka</b>.</li>
+                  <li><em>Pastikan hasilnya memuat <code>BDUSS=</code>. Nilai <code>ndus</code> saja tidak cukup: server tetap dikenali sebagai tamu, dan video tetap terkunci.</em></li>
+                </ol>
+              </div>
+              <div class="cookie-help-col">
+                <h4>Di HP (Android)</h4>
+                <ol>
+                  <li>Buka <b>terabox.com</b> di Chrome dan <b>login</b>.</li>
+                  <li>Pasang ekstensi editor cookie (mis. "Cookie Editor" di Firefox Android atau add-on setara di Chrome).</li>
+                  <li>Salin <b>semua</b> cookie <b>terabox.com</b>, terutama <code>BDUSS</code> dan <code>ndus</code>, dalam format <code>nama=nilai; nama=nilai</code>.</li>
+                  <li>Tempel ke kolom di atas, tekan <b>Buka</b>.</li>
+                </ol>
+              </div>
+              <p class="cookie-help-note">String ini adalah kunci akun Anda - jangan dibagikan ke orang lain. Di website ini cookie hanya tersimpan di browser Anda sendiri dan dipakai untuk mengambil tautan unduh atas nama akun Anda.</p>
+            </div>
+          </details>
+        </div>
+        <div id="resultsBody"></div>
+        <p class="rc-note" id="rcNote" hidden></p>
       </div>
     </section>
 
@@ -96,23 +160,23 @@
     <section class="section" id="cara">
       <div class="section-inner">
         <h2 class="section-title reveal">Tiga langkah, selesai.</h2>
-        <div class="steps">
-          <div class="step reveal" data-delay="0">
+        <ol class="steps">
+          <li class="step reveal">
             <span class="step-icon"><i class="ph-bold ph-clipboard-text"></i></span>
             <h3>Tempel link</h3>
             <p>Salin link berbagi dari aplikasi TeraBox, lalu tempel di kolom atas.</p>
-          </div>
-          <div class="step reveal" data-delay="1">
+          </li>
+          <li class="step reveal" data-delay="1">
             <span class="step-icon"><i class="ph-bold ph-cpu"></i></span>
             <h3>Proses otomatis</h3>
             <p>Sistem mengambil metadata file dan menautkan alamat unduh langsung.</p>
-          </div>
-          <div class="step reveal" data-delay="2">
+          </li>
+          <li class="step reveal" data-delay="2">
             <span class="step-icon"><i class="ph-bold ph-tray-arrow-down"></i></span>
             <h3>Unduh atau stream</h3>
             <p>Tekan tombolnya. Bisa langsung diputar juga tanpa unduh dulu.</p>
-          </div>
-        </div>
+          </li>
+        </ol>
       </div>
     </section>
 
@@ -171,21 +235,172 @@
         </div>
       </div>
     </section>
+
+    <!-- ===================== DEVELOPER ===================== -->
+    <section class="section" id="dev">
+      <div class="section-inner">
+        <h2 class="section-title reveal">Developer &amp; support</h2>
+        <p class="section-sub reveal">Ada masalah atau mau kasih masukan? Langsung saja hubungi.</p>
+        <div class="dev-grid">
+          <article class="dev-card reveal">
+            <span class="dev-avatar">
+              <img src="/img/noisy.jpg" alt="Foto Noisy" loading="lazy" />
+            </span>
+            <div class="dev-body">
+              <h3 class="dev-name">Noisy</h3>
+              <p class="dev-role">Developer</p>
+              <p class="dev-desc">Perancang dan pembangun Noisy TeraBox Downloader.</p>
+              <p class="dev-code" aria-hidden="true"><span class="dev-code-prompt">&gt;</span><span class="dev-code-text" data-text="const noisy = await download(url)">const noisy = await download(url)</span><span class="dev-code-caret"></span></p>
+              <div class="dev-links">
+                <a class="dev-link" href="https://t.me/noisy02" target="_blank" rel="noopener">
+                  <i class="ph-bold ph-telegram-logo"></i>noisy02
+                </a>
+                <a class="dev-link" href="https://github.com/cokguss" target="_blank" rel="noopener">
+                  <i class="ph-bold ph-github-logo"></i>cokguss
+                </a>
+              </div>
+            </div>
+          </article>
+          <article class="dev-card reveal" data-delay="1">
+            <span class="dev-avatar">
+              <img src="/img/bloodskill.jpg" alt="Foto BloodSkill" loading="lazy" />
+            </span>
+            <div class="dev-body">
+              <h3 class="dev-name">BloodSkill</h3>
+              <p class="dev-role">Support system</p>
+              <p class="dev-desc">Menangani support layanan ini, sekaligus pengembang <b>XtremeUbot</b> — bot Telegram dengan fitur yang sangat lengkap.</p>
+              <p class="dev-code" aria-hidden="true"><span class="dev-code-prompt">&gt;</span><span class="dev-code-text" data-text="ubot.deploy('@qbxy_bot') // ready">ubot.deploy('@qbxy_bot') // ready</span><span class="dev-code-caret"></span></p>
+              <div class="dev-links">
+                <a class="dev-link" href="https://t.me/bloodskil2" target="_blank" rel="noopener">
+                  <i class="ph-bold ph-telegram-logo"></i>bloodskil2
+                </a>
+                <a class="dev-link dev-link--bot" href="https://t.me/qbxy_bot" target="_blank" rel="noopener">
+                  <i class="ph-bold ph-robot"></i>@qbxy_bot
+                </a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
     <div class="footer-inner">
       <div>
         <a class="brand" href="#top">
-          <span class="brand-mark"><i class="ph-bold ph-download-simple"></i></span>
+          <span class="brand-mark"><img src="/img/logo.png" alt="" /></span>
           <span class="brand-name">Noisy<span class="brand-accent">TeraBox</span></span>
         </a>
         <p class="footer-note">Tidak berafiliasi dengan TeraBox. Gunakan hanya pada file yang Anda miliki haknya.</p>
       </div>
-      <p class="footer-credit">Scraper engine oleh <span class="credit-name">Noisy</span></p>
+      <div class="footer-right">
+        <nav class="footer-legal" aria-label="Tautan legal">
+          <button type="button" class="footer-legal-link" data-legal="privacy">Kebijakan Privasi</button>
+          <span class="footer-legal-dot" aria-hidden="true">·</span>
+          <button type="button" class="footer-legal-link" data-legal="terms">Ketentuan Layanan</button>
+        </nav>
+        <p class="footer-credit">Scraper engine oleh <span class="credit-name">Noisy</span></p>
+      </div>
     </div>
   </footer>
 
+  <!-- Modal legal: Kebijakan Privasi & Ketentuan Layanan -->
+  <div class="legal" id="legalModal" role="dialog" aria-modal="true" aria-labelledby="legalTitle" hidden>
+    <div class="legal__backdrop" data-close></div>
+    <article class="legal__panel">
+      <button type="button" class="legal__close" data-close aria-label="Tutup"><i class="ph-bold ph-x"></i></button>
+      <p class="legal__eyebrow">Noisy TeraBox — Legal</p>
+
+      <section class="legal__doc" id="legal-privacy">
+        <h2 class="legal__title" id="legalTitle">Kebijakan Privasi</h2>
+        <p class="legal__updated">Terakhir diperbarui · 25 September 2026</p>
+
+        <h3>Ringkasan singkat</h3>
+        <p>Noisy TeraBox adalah alat unduh tanpa akun. Kami tidak menyimpan file Anda, tidak memasang pelacak, dan tidak menjual data apa pun. Sebagian besar proses terjadi langsung antara browser Anda dan server TeraBox — cukup sidik jari jaringan.</p>
+
+        <h3>Data yang diproses saat mengambil file</h3>
+        <ul>
+          <li><b>Link yang Anda tempel.</b> Hanya dipakai untuk membaca isi link berbagi dan menautkan alamat unduh; tidak disimpan permanen di server kami.</li>
+          <li><b>Cookie sesi (opsional).</b> Bila Anda menempel cookie login, string itu disimpan hanya di localStorage browser Anda dan dikirim hanya ke server TeraBox untuk membuka file yang terkunci verifikasi. Kami tidak pernah menyalinnya ke tempat lain.</li>
+          <li><b>Log teknis.</b> Server dapat mencatat error dan ringkasan permintaan (tanpa isi file) untuk menjaga layanan tetap stabil.</li>
+        </ul>
+
+        <h3>Yang tidak kami lakukan</h3>
+        <ul>
+          <li>Tidak mengunggah, menyalin, atau memeriksa isi file Anda.</li>
+          <li>Tidak memakai iklan, analitik pihak ketiga, atau cookie pelacak di situs ini.</li>
+          <li>Tidak membagikan data Anda kepada siapa pun.</li>
+        </ul>
+
+        <h3>Pihak ketiga</h3>
+        <p>Layanan ini bergantung pada infrastruktur TeraBox dan CDN-nya. Saat Anda mengambil file, browser atau server kami terhubung ke domain-domain tersebut, yang masing-masing memiliki kebijakan privasinya sendiri.</p>
+
+        <h3>Kontak</h3>
+        <p>Pertanyaan tentang privasi? Hubungi developer melalui Telegram <b>@noisy02</b>.</p>
+      </section>
+
+      <section class="legal__doc" id="legal-terms" hidden>
+        <h2 class="legal__title">Ketentuan Layanan</h2>
+        <p class="legal__updated">Terakhir diperbarui · 25 September 2026</p>
+
+        <h3>1. Persetujuan ketentuan</h3>
+        <p>Dengan mengakses atau menggunakan Noisy TeraBox, Anda menyetujui ketentuan ini. Jika Anda tidak setuju dengan salah satu poin di bawah, mohon berhenti menggunakan layanan.</p>
+
+        <h3>2. Layanan "sebagaimana adanya"</h3>
+        <p>Layanan disediakan gratis, tanpa jaminan ketersediaan tanpa gangguan. Fitur, kecepatan, dan cakupan dapat berubah sewaktu-waktu karena bergantung pada server TeraBox sebagai sumber data.</p>
+
+        <h3>3. Penggunaan yang diperbolehkan</h3>
+        <ul>
+          <li>Mengunduh file yang Anda miliki haknya atau yang dibagikan terbuka oleh pemiliknya.</li>
+          <li>Memakai cookie sesi akun Anda sendiri bila diperlukan untuk membuka file milik Anda.</li>
+        </ul>
+
+        <h3>4. Larangan</h3>
+        <ul>
+          <li>Menggunakan layanan untuk menyebarkan konten ilegal, berhak cipta tanpa izin, atau membahayakan orang lain.</li>
+          <li>Membebani server secara berlebihan (otomasi massal, penyalahgunaan kuota upstream).</li>
+          <li>Mencoba mengganggu, memindai kerentanan, atau bocor ke sistem kami di luar fungsi normalnya.</li>
+        </ul>
+
+        <h3>5. Batasan tanggung jawab</h3>
+        <p>Kami tidak bertanggung jawab atas isi file, link yang mati, kerugian akibat ketergantungan pada layanan, atau tindakan pemilik akun TeraBox yang mencabut akses. Anda pengguna yang paling tahu hak atas file Anda.</p>
+
+        <h3>6. Perubahan</h3>
+        <p>Ketentuan ini dapat diperbarui sewaktu-waktu. Versi terbaru selalu terpasang di halaman ini, dengan tanggal perubahan di atas.</p>
+      </section>
+    </article>
+  </div>
+
+  <!-- Asisten AI mengambang -->
+  <div class="chat" id="chatWidget" hidden>
+    <div class="chat__panel" role="dialog" aria-label="Asisten AI Noisy TeraBox">
+      <header class="chat__head">
+        <span class="chat__avatar"><img src="/img/logo.png" alt="" /></span>
+        <div class="chat__title">
+          <p class="chat__name">Asisten Noisy</p>
+          <p class="chat__status"><i class="ph-fill ph-circle"></i> online — tanya apa pun soal situs ini</p>
+        </div>
+        <button type="button" class="chat__close" id="chatClose" aria-label="Tutup chat"><i class="ph-bold ph-x"></i></button>
+      </header>
+      <div class="chat__log" id="chatLog" aria-live="polite">
+        <div class="chat__msg chat__msg--bot">
+          <p>Halo! Aku asisten Noisy TeraBox. Tanya apa saja soal cara pakai, format link, video terkunci, cookie, privasi, dan sebagainya.</p>
+        </div>
+      </div>
+      <form class="chat__form" id="chatForm" autocomplete="off">
+        <input id="chatInput" type="text" placeholder="Tulis pertanyaan…" maxlength="600" aria-label="Pesan untuk asisten AI" />
+        <button type="submit" class="chat__send" id="chatSend" aria-label="Kirim"><i class="ph-bold ph-paper-plane-right"></i></button>
+      </form>
+    </div>
+  </div>
+  <button type="button" class="chat-fab" id="chatFab" aria-label="Buka asisten AI">
+    <i class="ph-bold ph-chat-circle-text"></i>
+    <span class="chat-fab-ping" aria-hidden="true"></span>
+  </button>
+
+  <script src="/js/loader.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/chat.js"></script>
 </body>
 </html>
