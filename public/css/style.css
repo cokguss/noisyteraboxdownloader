@@ -1896,3 +1896,11 @@ body {
   color: var(--text-dim);
 }
 .cookie-help-col p b { color: var(--text); font-weight: 600; }
+
+/* kelas perbaikan ikon: aktif dua frame saat kembali ke tab.
+   Toggle font-feature-settings memaksa browser membentuk ulang glyph
+   (termasuk ikon font yang ter-evict) tanpa mengosongkan halaman. */
+html.icon-repair body {
+  font-feature-settings: "kern" 0 !important;
+  -webkit-font-smoothing: auto !important;
+}

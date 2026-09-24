@@ -558,12 +558,17 @@
 
   /* ---------- perbaiki ikon yang hilang setelah pindah tab ----------
      Chromium kadang membuang font ikon saat tab di background, dan saat
-     kembali glyph tidak digambar ulang sampai repaint dipaksa. */
+     kembali glyph tidak digambar ulang. Triknya: toggle font-feature
+     settings (memicu re-shaping glyph tanpa mengosongkan halaman) +
+     minta browser memuat ulang font ikonnya. Tanpa reload, tanpa kedip. */
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
-    document.body.style.display = "none";
-    void document.body.offsetHeight; /* paksa relayout */
-    document.body.style.display = "";
+    ["16px Phosphor", "16px 'Phosphor-Bold'"].forEach((f) => {
+      document.fonts && document.fonts.load(f).catch(() => {});
+    });
+    const root = document.documentElement;
+    root.classList.add("icon-repair");
+    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("icon-repair")));
   });
 
   /* ---------- paste button ---------- */
