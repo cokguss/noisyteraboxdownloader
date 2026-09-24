@@ -1868,3 +1868,12 @@ body {
   .chat { place-items: end center; padding-bottom: calc(14px + 60px); }
   .chat__panel { transform-origin: bottom center; width: calc(100vw - 20px); height: min(560px, calc(100dvh - 110px)); }
 }
+
+/* paragraf pengantar & penjelasan di dalam kolom panduan cookie */
+.cookie-help-col p {
+  margin: 8px 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+.cookie-help-col p b { color: var(--text); font-weight: 600; }

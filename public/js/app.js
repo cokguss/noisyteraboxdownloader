@@ -478,17 +478,20 @@
     if (lastUrl) fetchFileList(lastUrl);
   });
 
-  /* salin perintah console untuk ambil ndus */
-  const btnCopySnippet = $("btnCopySnippet");
-  if (btnCopySnippet) {
-    btnCopySnippet.addEventListener("click", async () => {
+  /* salin perintah console: setiap tombol .btn-copy menyalin kode di
+     dalam .code-copy induknya (dipakai snippet cookie & csrfToken) */
+  document.querySelectorAll(".code-copy").forEach((box) => {
+    const btn = box.querySelector(".btn-copy");
+    const code = box.querySelector("code");
+    if (!btn || !code) return;
+    btn.addEventListener("click", async () => {
       try {
-        await navigator.clipboard.writeText($("ndusSnippet").textContent.trim());
-        btnCopySnippet.innerHTML = '<i class="ph-bold ph-check"></i>';
-        setTimeout(() => { btnCopySnippet.innerHTML = '<i class="ph ph-copy"></i>'; }, 1800);
+        await navigator.clipboard.writeText(code.textContent.trim());
+        btn.innerHTML = '<i class="ph-bold ph-check"></i>';
+        setTimeout(() => { btn.innerHTML = '<i class="ph ph-copy"></i>'; }, 1800);
       } catch {}
     });
-  }
+  });
 
   input.addEventListener("input", () => setError(null));
 

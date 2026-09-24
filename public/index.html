@@ -124,26 +124,43 @@
             <button type="button" class="btn-ghost" id="btnApplyNdus"><span class="btn-label">Buka</span><i class="ph-bold ph-key"></i></button>
           </div>
           <details class="cookie-help">
-            <summary><i class="ph ph-info"></i>Cara mengambil cookie sesi login</summary>
+            <summary><i class="ph ph-info"></i>Cara mengambil cookie &amp; csrfToken sesi login</summary>
             <div class="cookie-help-body">
               <div class="cookie-help-col">
-                <h4>Di laptop / PC</h4>
+                <h4>1 · Cookie sesi login (BDUSS)</h4>
                 <ol>
                   <li>Buka <b>terabox.com</b> dan <b>login</b> ke akun Anda.</li>
-                  <li>Tekan <b>F12</b> &gt; tab <b>Console</b>. (Kalau diminta, ketik <code>allow pasting</code> dulu.)</li>
-                  <li>Tempel baris ini lalu tekan Enter:
-                    <div class="code-copy"><code id="ndusSnippet">copy(document.cookie)</code><button type="button" class="btn-copy" id="btnCopySnippet" aria-label="Salin perintah"><i class="ph ph-copy"></i></button></div>
+                  <li>Tekan <b>F12</b> &gt; pilih tab <b>Console</b>. (Kalau tempel ditolak, ketik <code>allow pasting</code> dulu lalu Enter.)</li>
+                  <li>Tempel baris ini, lalu tekan Enter:
+                    <div class="code-copy"><code id="ndusSnippet">copy(document.cookie)</code><button type="button" class="btn-copy" aria-label="Salin perintah"><i class="ph ph-copy"></i></button></div>
                   </li>
-                  <li>String cookie <b>otomatis tersalin</b>. Tinggal tempel (Ctrl+V) ke kolom di atas, tekan <b>Buka</b>.</li>
+                  <li>String cookie <b>otomatis tersalin</b> ke clipboard.</li>
                   <li><em>Pastikan hasilnya memuat <code>BDUSS=</code>. Nilai <code>ndus</code> saja tidak cukup: server tetap dikenali sebagai tamu, dan video tetap terkunci.</em></li>
                 </ol>
+              </div>
+              <div class="cookie-help-col">
+                <h4>2 · csrfToken (melalui Developer Tools)</h4>
+                <p class="cookie-help-lead">Beberapa permintaan TeraBox menuntut token CSRF. Ada dua cara mengambilnya — pilih yang paling nyaman:</p>
+                <p><b>Cara cepat — Console.</b> Masih di tab <b>Console</b>, tempel baris ini lalu Enter:
+                  <div class="code-copy"><code id="csrfSnippet">copy((document.cookie.match(/csrfToken=([^;]+)/) || ["", "csrfToken tidak ditemukan"])[1])</code><button type="button" class="btn-copy" aria-label="Salin perintah"><i class="ph ph-copy"></i></button></div>
+                </p>
+                <p>Nilai <code>csrfToken</code> langsung tersalin ke clipboard. Pastikan Anda sudah login — token ini hanya ada pada sesi yang login.</p>
+                <p><b>Cara visual — tab Application.</b></p>
+                <ol>
+                  <li>Tekan <b>F12</b> &gt; pilih tab <b>Application</b> (Chrome/Edge) atau <b>Storage</b> (Firefox).</li>
+                  <li>Di panel kiri, buka <b>Cookies</b> &gt; pilih <code>https://terabox.com</code>.</li>
+                  <li>Cari baris bernama <code>csrfToken</code>, lalu salin isinya dari kolom <b>Value</b> (dobel-klik nilai tersebut).</li>
+                </ol>
+                <p><b>Cara pakai:</b> gabungkan dengan cookie sesi di kolom di atas, contoh:
+                  <code>BDUSS=…; ndus=…; csrfToken=…</code>
+                </p>
               </div>
               <div class="cookie-help-col">
                 <h4>Di HP (Android)</h4>
                 <ol>
                   <li>Buka <b>terabox.com</b> di Chrome dan <b>login</b>.</li>
                   <li>Pasang ekstensi editor cookie (mis. "Cookie Editor" di Firefox Android atau add-on setara di Chrome).</li>
-                  <li>Salin <b>semua</b> cookie <b>terabox.com</b>, terutama <code>BDUSS</code> dan <code>ndus</code>, dalam format <code>nama=nilai; nama=nilai</code>.</li>
+                  <li>Salin <b>semua</b> cookie <b>terabox.com</b>, terutama <code>BDUSS</code>, <code>ndus</code>, dan <code>csrfToken</code>, dalam format <code>nama=nilai; nama=nilai</code>.</li>
                   <li>Tempel ke kolom di atas, tekan <b>Buka</b>.</li>
                 </ol>
               </div>
