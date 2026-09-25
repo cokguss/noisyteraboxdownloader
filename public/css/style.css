@@ -2025,15 +2025,15 @@ html.icon-repair body {
   color: var(--text-dim);
 }
 .stat-hours span { flex: 1; text-align: center; }
+/* display flex memecah text-node jadi kolom — pakai block biasa */
 .stats-foot {
   margin-top: 18px;
   font-size: 13px;
+  line-height: 1.6;
   color: var(--text-dim);
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
-.stats-foot i { color: var(--accent); }
+.stats-foot i { color: var(--accent); vertical-align: -2px; margin-right: 5px; }
+.stats-foot b { color: var(--text); font-weight: 600; }
 .stats-foot b { color: var(--text); font-weight: 600; }
 
 @media (max-width: 900px) {

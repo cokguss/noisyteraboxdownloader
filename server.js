@@ -11,6 +11,14 @@ const axios = require('axios');
 const archiver = require('archiver');
 const { PassThrough } = require('stream');
 
+/* muat .env (opsional) tanpa dependensi dotenv */
+try {
+    for (const line of fs.readFileSync(path.join(__dirname, '.env'), 'utf8').split(/\r?\n/)) {
+        const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+        if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    }
+} catch { /* .env tidak ada: wajar di produksi */ }
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -637,63 +645,138 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
  * dan tersimpan di localStorage-nya sendiri. Server hanya menghitung:
  *  - online : sesi yang masih berdenyut (heartbeat <= 65 detik)
  *  - total  : jumlah kunjungan (sesi baru) sepanjang waktu
- * Angka dipersist ke data/visits.json secara best-effort — di Vercel
- * disk read-only/serverless ephemeral, statistik tetap jalan (in-memory)
- * tapi angka total tidak lintas instance.
+ *
+ * Dua mode penyimpanan:
+ *  - Upstash Redis (REST) bila env UPSTASH_REDIS_REST_URL/TOKEN ada —
+ *    angka persisten & akurat lintas instance (Vercel) dan bertahan
+ *    lintas restart/deploy.
+ *  - Fallback memori + file data/visits.json (best-effort) untuk lokal
+ *    tanpa Redis.
  */
-const VISITS_FILE = path.join(__dirname, 'data', 'visits.json');
-const visits = { online: new Map(), total: 0, peak: 0, days: {}, hours: {}, lastSave: 0 };
+const REDIS_URL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/+$/, '');
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const REDIS_ON = Boolean(REDIS_URL && REDIS_TOKEN);
 
+const ONLINE_WINDOW_MS = 65000;
+
+async function redisCmd(args) {
+    const res = await fetch(REDIS_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(args),
+        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT)
+    });
+    const j = await res.json();
+    if (j.error) throw new Error(j.error);
+    return j.result;
+}
+
+async function redisPipeline(commands) {
+    const res = await fetch(`${REDIS_URL}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(commands),
+        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT)
+    });
+    const list = await res.json();
+    const err = list.find((x) => x && x.error);
+    if (err) throw new Error(err.error);
+    return list.map((x) => x.result);
+}
+
+/* fallback memori (lokal tanpa Redis) */
+const VISITS_FILE = path.join(__dirname, 'data', 'visits.json');
+const mem = { online: new Map(), total: 0, peak: 0, days: {}, hours: {}, lastSave: 0 };
 try {
     const raw = JSON.parse(fs.readFileSync(VISITS_FILE, 'utf8'));
-    visits.total = Number(raw.total) || 0;
-    visits.peak = Number(raw.peak) || 0;
-    visits.days = raw.days && typeof raw.days === 'object' ? raw.days : {};
-    visits.hours = raw.hours && typeof raw.hours === 'object' ? raw.hours : {};
+    mem.total = Number(raw.total) || 0;
+    mem.peak = Number(raw.peak) || 0;
+    mem.days = raw.days && typeof raw.days === 'object' ? raw.days : {};
+    mem.hours = raw.hours && typeof raw.hours === 'object' ? raw.hours : {};
 } catch { /* file belum ada: mulai dari nol */ }
 
 function persistVisits(force) {
     const now = Date.now();
-    if (!force && now - visits.lastSave < 15000) return;
-    visits.lastSave = now;
+    if (!force && now - mem.lastSave < 15000) return;
+    mem.lastSave = now;
     try {
         fs.mkdirSync(path.dirname(VISITS_FILE), { recursive: true });
-        fs.writeFileSync(VISITS_FILE, JSON.stringify({ total: visits.total, peak: visits.peak, days: visits.days, hours: visits.hours }));
+        fs.writeFileSync(VISITS_FILE, JSON.stringify({ total: mem.total, peak: mem.peak, days: mem.days, hours: mem.hours }));
     } catch { /* serverless read-only: abaikan */ }
 }
 
-app.get('/api/visit', (req, res) => {
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+app.get('/api/visit', async (req, res) => {
     const sid = String(req.query.sid || '').toLowerCase();
     const now = Date.now();
-    for (const [k, t] of visits.online) if (now - t > 65000) visits.online.delete(k);
-    let isNew = false;
-    if (/^[a-f0-9]{8,48}$/.test(sid)) {
-        if (!visits.online.has(sid)) {
-            isNew = true;
-            visits.total++;
-            const d = new Date();
-            const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            visits.days[day] = (visits.days[day] || 0) + 1;
-            /* simpan maksimal 30 hari terakhir */
-            const keys = Object.keys(visits.days).sort();
-            while (keys.length > 30) delete visits.days[keys.shift()];
-            const h = d.getHours();
-            visits.hours[h] = (visits.hours[h] || 0) + 1;
+    const valid = /^[a-f0-9]{8,48}$/.test(sid);
+    res.set('Cache-Control', 'no-store');
+
+    if (REDIS_ON) {
+        try {
+            const h = new Date().getHours();
+            const writes = valid ? [
+                ['ZADD', 'vt:online', now, sid],
+                ['ZREMRANGEBYSCORE', 'vt:online', '-inf', String(now - ONLINE_WINDOW_MS)],
+                ['SADD', 'vt:sids', sid],
+                ['INCR', `vt:day:${dayKey()}`],
+                ['EXPIRE', `vt:day:${dayKey()}`, 60 * 60 * 24 * 45],
+                ['HINCRBY', 'vt:hours', String(h), 1],
+                ['EXPIRE', 'vt:hours', 60 * 60 * 24 * 90]
+            ] : [];
+            const results = await redisPipeline([
+                ...writes,
+                ['ZCARD', 'vt:online'],
+                ['SCARD', 'vt:sids'],
+                ['GET', 'vt:peak'],
+                ['HGETALL', 'vt:hours'],
+                ['GET', `vt:day:${dayKey()}`]
+            ]);
+            const tail = results.slice(writes.length);
+            const online = Number(tail[0]) || 0;
+            const total = Number(tail[1]) || 0;
+            const peak = Math.max(Number(tail[2]) || 0, online);
+            const hours = tail[3] || {};
+            if (peak > Number(tail[2]) || 0) redisCmd(['SET', 'vt:peak', String(peak)]).catch(() => {});
+            return res.json({
+                ok: true,
+                store: 'redis',
+                online,
+                total,
+                today: Number(tail[4]) || 0,
+                peak,
+                hours,
+                uptime: Math.round(process.uptime()),
+                ts: now
+            });
+        } catch (e) {
+            console.log('[visit] redis gagal, fallback memori:', e.message.slice(0, 80));
         }
-        visits.online.set(sid, now);
+    }
+
+    /* ---- fallback memori (lokal tanpa Redis) ---- */
+    for (const [k, t] of mem.online) if (now - t > ONLINE_WINDOW_MS) mem.online.delete(k);
+    if (valid) {
+        if (!mem.online.has(sid)) {
+            mem.total++;
+            mem.days[dayKey()] = (mem.days[dayKey()] || 0) + 1;
+            const keys = Object.keys(mem.days).sort();
+            while (keys.length > 30) delete mem.days[keys.shift()];
+            mem.hours[new Date().getHours()] = (mem.hours[new Date().getHours()] || 0) + 1;
+        }
+        mem.online.set(sid, now);
         persistVisits();
     }
-    visits.peak = Math.max(visits.peak, visits.online.size);
-    const d = new Date();
-    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    res.set('Cache-Control', 'no-store');
+    mem.peak = Math.max(mem.peak, mem.online.size);
     res.json({
         ok: true,
-        online: visits.online.size,
-        total: visits.total,
-        today: visits.days[day] || 0,
-        peak: visits.peak,
-        hours: visits.hours,
+        store: 'memory',
+        online: mem.online.size,
+        total: mem.total,
+        today: mem.days[dayKey()] || 0,
+        peak: mem.peak,
+        hours: mem.hours,
         uptime: Math.round(process.uptime()),
         ts: now
     });

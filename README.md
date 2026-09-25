@@ -104,6 +104,7 @@ noisyteraboxdownloader/
 1. Push repo ini ke GitHub.
 2. Import repo di Vercel / Railway / Render / VPS pilihan Anda.
 3. Pastikan start command `npm start`, lalu deploy.
+4. (Opsional, untuk statistik pengunjung persisten) tambahkan env var `UPSTASH_REDIS_REST_URL` dan `UPSTASH_REDIS_REST_TOKEN` dari [Upstash](https://console.upstash.com). Tanpa env ini statistik tetap jalan tapi hanya in-memory (reset tiap deploy).
 
 > [!NOTE]
 > Endpoint upstream bisa berubah sewaktu-waktu karena bergantung pada flowvideoplayer dan TeraBox.
