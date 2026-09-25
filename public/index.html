@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="/phosphor/bold/style.css" />
   <link rel="preload" href="/phosphor/regular/Phosphor.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/phosphor/bold/Phosphor.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="/css/style.css?v=20260925e" />
+  <link rel="stylesheet" href="/css/style.css?v=20260925f" />
   <link rel="icon" href="/img/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16.png" />
@@ -302,6 +302,45 @@
         </div>
       </div>
     </section>
+
+    <!-- ===================== STATISTIK PENGUNJUNG ===================== -->
+    <section class="section" id="stats">
+      <div class="section-inner">
+        <h2 class="section-title reveal">Statistik pengunjung</h2>
+        <p class="section-sub reveal">Data langsung dari server, diperbarui tiap 30 detik — first-party, tanpa cookie &amp; tanpa pelacak.</p>
+
+        <div class="stats-grid">
+          <article class="stat-live reveal">
+            <span class="stat-live-dot" aria-hidden="true"></span>
+            <p class="stat-live-num"><span id="statOnline">0</span></p>
+            <p class="stat-live-label">pengunjung online sekarang</p>
+          </article>
+          <article class="stat-card reveal" data-delay="1">
+            <span class="stat-icon"><i class="ph-bold ph-users-three"></i></span>
+            <p class="stat-num" id="statTotal">0</p>
+            <p class="stat-label">total kunjungan</p>
+          </article>
+          <article class="stat-card reveal" data-delay="2">
+            <span class="stat-icon"><i class="ph-bold ph-calendar-check"></i></span>
+            <p class="stat-num" id="statToday">0</p>
+            <p class="stat-label">kunjungan hari ini</p>
+          </article>
+          <article class="stat-card reveal" data-delay="3">
+            <span class="stat-icon"><i class="ph-bold ph-trend-up"></i></span>
+            <p class="stat-num" id="statPeak">0</p>
+            <p class="stat-label">puncak online</p>
+          </article>
+        </div>
+
+        <article class="stat-chart reveal">
+          <p class="stat-chart-title"><i class="ph-bold ph-chart-bar"></i> Aktivitas per jam <span class="stat-chart-hint">(waktu server)</span></p>
+          <div class="stat-bars" id="statBars" aria-hidden="true"></div>
+          <div class="stat-hours" id="statHours" aria-hidden="true"></div>
+        </article>
+
+        <p class="stats-foot reveal"><i class="ph-bold ph-timer"></i> Server berjalan <b id="statUptime">–</b> · statistik first-party, tanpa cookie &amp; tanpa IP</p>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -423,8 +462,8 @@
     <span class="chat-fab-ping" aria-hidden="true"></span>
   </button>
 
-  <script src="/js/loader.js?v=20260925e"></script>
-  <script src="/js/app.js?v=20260925e"></script>
-  <script src="/js/chat.js?v=20260925e"></script>
+  <script src="/js/loader.js?v=20260925f"></script>
+  <script src="/js/app.js?v=20260925f"></script>
+  <script src="/js/chat.js?v=20260925f"></script>
 </body>
 </html>

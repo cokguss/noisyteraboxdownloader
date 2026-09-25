@@ -1928,3 +1928,143 @@ html.icon-repair body {
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
 }
+
+/* ============================================================
+   Section statistik pengunjung
+   ============================================================ */
+.stats-grid {
+  margin-top: clamp(32px, 5vh, 48px);
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: 16px;
+}
+.stat-live, .stat-card {
+  position: relative;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 22px;
+  overflow: hidden;
+  transition: border-color 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+}
+.stat-card:hover, .stat-live:hover {
+  border-color: rgba(52, 211, 153, 0.35);
+  transform: translateY(-3px);
+}
+/* kartu live: glow radial mengikuti posisi kursor tak perlu — cukup denyut halus */
+.stat-live {
+  background:
+    radial-gradient(120% 140% at 15% 0%, rgba(52, 211, 153, 0.14), transparent 55%),
+    var(--surface);
+}
+.stat-live-dot {
+  position: relative;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.9);
+}
+.stat-live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px solid rgba(52, 211, 153, 0.55);
+  animation: fab-ping 2s var(--ease-out) infinite;
+}
+.stat-live-num {
+  margin-top: 14px;
+  font-size: clamp(3rem, 6vw, 4.4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(120deg, var(--text), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.stat-live-label { margin-top: 8px; color: var(--text-dim); font-size: 14px; }
+
+.stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  color: var(--accent);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+.stat-num {
+  margin-top: 16px;
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.stat-label { margin-top: 6px; color: var(--text-dim); font-size: 13px; }
+
+/* grafik aktivitas per jam */
+.stat-chart {
+  margin-top: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 22px;
+}
+.stat-chart-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.stat-chart-title i { color: var(--accent); }
+.stat-chart-hint { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim); font-weight: 400; }
+.stat-bars {
+  margin-top: 18px;
+  height: 130px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.stat-bar {
+  flex: 1;
+  height: var(--h, 4%);
+  min-height: 3px;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, var(--accent), rgba(16, 185, 129, 0.35));
+  opacity: 0.85;
+  transition: height 0.7s var(--ease-out), opacity 0.25s, filter 0.25s;
+  transform-origin: bottom;
+}
+.stat-bar:hover { opacity: 1; filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.55)); }
+.stat-hours {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-dim);
+}
+.stat-hours span { flex: 1; text-align: center; }
+.stats-foot {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stats-foot i { color: var(--accent); }
+.stats-foot b { color: var(--text); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stat-live { grid-column: 1 / -1; }
+}
+@media (max-width: 420px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .stat-bars { gap: 3px; }
+  .stat-hours { gap: 3px; font-size: 8.5px; }
+}

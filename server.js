@@ -642,11 +642,14 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
  * tapi angka total tidak lintas instance.
  */
 const VISITS_FILE = path.join(__dirname, 'data', 'visits.json');
-const visits = { online: new Map(), total: 0, lastSave: 0 };
+const visits = { online: new Map(), total: 0, peak: 0, days: {}, hours: {}, lastSave: 0 };
 
 try {
     const raw = JSON.parse(fs.readFileSync(VISITS_FILE, 'utf8'));
     visits.total = Number(raw.total) || 0;
+    visits.peak = Number(raw.peak) || 0;
+    visits.days = raw.days && typeof raw.days === 'object' ? raw.days : {};
+    visits.hours = raw.hours && typeof raw.hours === 'object' ? raw.hours : {};
 } catch { /* file belum ada: mulai dari nol */ }
 
 function persistVisits(force) {
@@ -655,7 +658,7 @@ function persistVisits(force) {
     visits.lastSave = now;
     try {
         fs.mkdirSync(path.dirname(VISITS_FILE), { recursive: true });
-        fs.writeFileSync(VISITS_FILE, JSON.stringify({ total: visits.total }));
+        fs.writeFileSync(VISITS_FILE, JSON.stringify({ total: visits.total, peak: visits.peak, days: visits.days, hours: visits.hours }));
     } catch { /* serverless read-only: abaikan */ }
 }
 
@@ -663,13 +666,37 @@ app.get('/api/visit', (req, res) => {
     const sid = String(req.query.sid || '').toLowerCase();
     const now = Date.now();
     for (const [k, t] of visits.online) if (now - t > 65000) visits.online.delete(k);
+    let isNew = false;
     if (/^[a-f0-9]{8,48}$/.test(sid)) {
-        if (!visits.online.has(sid)) visits.total++;
+        if (!visits.online.has(sid)) {
+            isNew = true;
+            visits.total++;
+            const d = new Date();
+            const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            visits.days[day] = (visits.days[day] || 0) + 1;
+            /* simpan maksimal 30 hari terakhir */
+            const keys = Object.keys(visits.days).sort();
+            while (keys.length > 30) delete visits.days[keys.shift()];
+            const h = d.getHours();
+            visits.hours[h] = (visits.hours[h] || 0) + 1;
+        }
         visits.online.set(sid, now);
         persistVisits();
     }
+    visits.peak = Math.max(visits.peak, visits.online.size);
+    const d = new Date();
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     res.set('Cache-Control', 'no-store');
-    res.json({ ok: true, online: visits.online.size, total: visits.total });
+    res.json({
+        ok: true,
+        online: visits.online.size,
+        total: visits.total,
+        today: visits.days[day] || 0,
+        peak: visits.peak,
+        hours: visits.hours,
+        uptime: Math.round(process.uptime()),
+        ts: now
+    });
 });
 
 /*

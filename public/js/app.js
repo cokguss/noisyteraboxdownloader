@@ -588,6 +588,51 @@
         localStorage.setItem("vt_sid", sid);
       }
     } catch { sid = ""; }
+
+    /* angka berjalan naik-turun dengan easing saat nilainya berubah */
+    function animateNumber(el, to) {
+      if (!el) return;
+      const from = Number(el.dataset.v || 0);
+      el.dataset.v = to;
+      if (from === to) { el.textContent = to.toLocaleString("id-ID"); return; }
+      const t0 = performance.now(), dur = 900;
+      (function step(t) {
+        const p = Math.min(1, (t - t0) / dur);
+        const v = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+        el.textContent = v.toLocaleString("id-ID");
+        if (p < 1) requestAnimationFrame(step);
+      })(t0);
+    }
+
+    /* grafik aktivitas per jam: 24 batang yang tumbuh smooth */
+    const barsEl = $("statBars"), hoursEl = $("statHours");
+    if (barsEl && !barsEl.childElementCount) {
+      for (let i = 0; i < 24; i++) {
+        const b = document.createElement("span");
+        b.className = "stat-bar";
+        b.style.setProperty("--h", "4%");
+        barsEl.appendChild(b);
+        const l = document.createElement("span");
+        l.className = "stat-hour";
+        l.textContent = i % 3 === 0 ? String(i).padStart(2, "0") : "";
+        hoursEl.appendChild(l);
+      }
+    }
+    function renderBars(hours) {
+      if (!barsEl) return;
+      const counts = Array.from({ length: 24 }, (_, i) => Number(hours[i] || 0));
+      const max = Math.max(1, ...counts);
+      [...barsEl.children].forEach((b, i) => {
+        b.style.setProperty("--h", Math.max(4, Math.round((counts[i] / max) * 100)) + "%");
+        b.title = `${String(i).padStart(2, "0")}:00 — ${counts[i]} kunjungan`;
+      });
+    }
+
+    function fmtUptime(sec) {
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+      return h > 0 ? `${h} jam ${m} menit` : `${m} menit`;
+    }
+
     async function ping() {
       try {
         const res = await fetch("/api/visit?sid=" + encodeURIComponent(sid), { cache: "no-store" });
@@ -595,6 +640,21 @@
         if (d && d.ok) {
           onlineEl.textContent = d.online;
           totalEl.textContent = Number(d.total).toLocaleString("id-ID");
+          /* section statistik: angka ber-animasi hanya saat terlihat */
+          const live = document.querySelector(".stat-live");
+          const statsInView = !live || live.classList.contains("in");
+          const set = (id, v) => {
+            const el = $(id);
+            if (!el) return;
+            if (statsInView) animateNumber(el, v); else { el.dataset.v = v; el.textContent = v.toLocaleString("id-ID"); }
+          };
+          set("statOnline", d.online);
+          set("statTotal", d.total);
+          set("statToday", d.today || 0);
+          set("statPeak", d.peak || 0);
+          renderBars(d.hours || {});
+          const up = $("statUptime");
+          if (up) up.textContent = fmtUptime(Number(d.uptime) || 0);
         }
       } catch { /* server tak terjangkau: biarkan angka lama */ }
     }
