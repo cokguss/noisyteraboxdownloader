@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="/phosphor/bold/style.css" />
   <link rel="preload" href="/phosphor/regular/Phosphor.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/phosphor/bold/Phosphor.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="/css/style.css?v=20260925d" />
+  <link rel="stylesheet" href="/css/style.css?v=20260925e" />
   <link rel="icon" href="/img/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16.png" />
@@ -314,6 +314,10 @@
         <p class="footer-note">Tidak berafiliasi dengan TeraBox. Gunakan hanya pada file yang Anda miliki haknya.</p>
       </div>
       <div class="footer-right">
+        <p class="visit-stats" id="visitStats" aria-live="polite">
+          <i class="ph-fill ph-circle" aria-hidden="true"></i>
+          <b id="visitOnline">–</b> online · <b id="visitTotal">–</b> total kunjungan
+        </p>
         <nav class="footer-legal" aria-label="Tautan legal">
           <button type="button" class="footer-legal-link" data-legal="privacy">Kebijakan Privasi</button>
           <span class="footer-legal-dot" aria-hidden="true">·</span>
@@ -343,6 +347,7 @@
           <li><b>Link yang Anda tempel.</b> Hanya dipakai untuk membaca isi link berbagi dan menautkan alamat unduh; tidak disimpan permanen di server kami.</li>
           <li><b>Cookie sesi (opsional).</b> Bila Anda menempel cookie login, string itu disimpan hanya di localStorage browser Anda dan dikirim hanya ke server TeraBox untuk membuka file yang terkunci verifikasi. Kami tidak pernah menyalinnya ke tempat lain.</li>
           <li><b>Log teknis.</b> Server dapat mencatat error dan ringkasan permintaan (tanpa isi file) untuk menjaga layanan tetap stabil.</li>
+          <li><b>Statistik kunjungan.</b> Hitungan first-party yang tampil di footer — hanya jumlah sesi aktif dan total kunjungan, tanpa cookie, tanpa alamat IP, tanpa data pribadi.</li>
         </ul>
 
         <h3>Yang tidak kami lakukan</h3>
@@ -418,8 +423,8 @@
     <span class="chat-fab-ping" aria-hidden="true"></span>
   </button>
 
-  <script src="/js/loader.js?v=20260925d"></script>
-  <script src="/js/app.js?v=20260925d"></script>
-  <script src="/js/chat.js?v=20260925d"></script>
+  <script src="/js/loader.js?v=20260925e"></script>
+  <script src="/js/app.js?v=20260925e"></script>
+  <script src="/js/chat.js?v=20260925e"></script>
 </body>
 </html>

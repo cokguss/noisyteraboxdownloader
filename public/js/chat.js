@@ -19,7 +19,7 @@
     "- Link unduhan berlaku beberapa jam (token upstream).",
     "- Privasi: tidak menyimpan file, tanpa pelacak/iklan/analitik; hanya memetakan link ke alamat unduh resmi TeraBox.",
     "- Developer: Noisy (Telegram @noisy02, github.com/cokguss). Support: BloodSkill (Telegram @bloodskil2), pengembang bot Telegram XtremeUbot (@qbxy_bot).",
-    "- Halaman punya Kebijakan Privasi dan Ketentuan Layanan di footer.",
+    "- Halaman punya Kebijakan Privasi dan Ketentuan Layanan di footer, plus statistik pengunjung real-time (online & total kunjungan) — first-party, tanpa cookie.",
     "Jika ditanya hal di luar topik situs/TeraBox secara umum, arahkan kembali dengan sopan. Jangan mengarang fitur."
   ].join("\n");
 

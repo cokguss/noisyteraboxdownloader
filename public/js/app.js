@@ -571,6 +571,38 @@
     requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("icon-repair")));
   });
 
+  /* ---------- statistik pengunjung (first-party, real-time) ----------
+     Session id acak dibuat dan disimpan di localStorage user; server
+     hanya menghitung sesi aktif (heartbeat 30 dtk) dan total kunjungan.
+     Tanpa cookie, tanpa IP, tanpa pihak ketiga. */
+  (() => {
+    const onlineEl = $("visitOnline");
+    const totalEl = $("visitTotal");
+    if (!onlineEl) return;
+    let sid = "";
+    try {
+      sid = localStorage.getItem("vt_sid") || "";
+      if (!sid) {
+        sid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()) + Date.now()).replace(/[^a-f0-9]/gi, "").slice(0, 32);
+        if (sid.length < 8) sid = crypto.getRandomValues(new Uint8Array(16)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), "");
+        localStorage.setItem("vt_sid", sid);
+      }
+    } catch { sid = ""; }
+    async function ping() {
+      try {
+        const res = await fetch("/api/visit?sid=" + encodeURIComponent(sid), { cache: "no-store" });
+        const d = await res.json();
+        if (d && d.ok) {
+          onlineEl.textContent = d.online;
+          totalEl.textContent = Number(d.total).toLocaleString("id-ID");
+        }
+      } catch { /* server tak terjangkau: biarkan angka lama */ }
+    }
+    ping();
+    setInterval(ping, 30000);
+    addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") ping(); });
+  })();
+
   /* ---------- paste button ---------- */
   btnPaste.addEventListener("click", async () => {
     try {

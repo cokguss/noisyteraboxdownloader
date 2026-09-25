@@ -40,3 +40,6 @@ debug.js
 shot*.png
 z2.zip
 .zcodeignore
+
+# runtime data
+data/

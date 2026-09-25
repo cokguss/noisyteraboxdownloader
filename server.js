@@ -5,6 +5,7 @@
  */
 
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const axios = require('axios');
 const archiver = require('archiver');
@@ -627,6 +628,50 @@ app.post('/api/download', async (req, res) => {
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+/* ------------------------------------------------------------------ */
+/* Statistik pengunjung (first-party, tanpa cookie & tanpa IP)         */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Ping dari frontend membawa session id acak yang dibuat browser user
+ * dan tersimpan di localStorage-nya sendiri. Server hanya menghitung:
+ *  - online : sesi yang masih berdenyut (heartbeat <= 65 detik)
+ *  - total  : jumlah kunjungan (sesi baru) sepanjang waktu
+ * Angka dipersist ke data/visits.json secara best-effort — di Vercel
+ * disk read-only/serverless ephemeral, statistik tetap jalan (in-memory)
+ * tapi angka total tidak lintas instance.
+ */
+const VISITS_FILE = path.join(__dirname, 'data', 'visits.json');
+const visits = { online: new Map(), total: 0, lastSave: 0 };
+
+try {
+    const raw = JSON.parse(fs.readFileSync(VISITS_FILE, 'utf8'));
+    visits.total = Number(raw.total) || 0;
+} catch { /* file belum ada: mulai dari nol */ }
+
+function persistVisits(force) {
+    const now = Date.now();
+    if (!force && now - visits.lastSave < 15000) return;
+    visits.lastSave = now;
+    try {
+        fs.mkdirSync(path.dirname(VISITS_FILE), { recursive: true });
+        fs.writeFileSync(VISITS_FILE, JSON.stringify({ total: visits.total }));
+    } catch { /* serverless read-only: abaikan */ }
+}
+
+app.get('/api/visit', (req, res) => {
+    const sid = String(req.query.sid || '').toLowerCase();
+    const now = Date.now();
+    for (const [k, t] of visits.online) if (now - t > 65000) visits.online.delete(k);
+    if (/^[a-f0-9]{8,48}$/.test(sid)) {
+        if (!visits.online.has(sid)) visits.total++;
+        visits.online.set(sid, now);
+        persistVisits();
+    }
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, online: visits.online.size, total: visits.total });
+});
+
 /*
  * Unduh semua sekaligus: GET /api/zip?d=<token sesi>. Daftar file diambil
  * dari hasil /api/download yang tersimpan di sesi (hanya yang punya URL
@@ -874,6 +919,9 @@ if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`Noisy TeraBox Downloader jalan di http://localhost:${PORT}`);
     });
+    for (const sig of ['SIGINT', 'SIGTERM']) {
+        process.on(sig, () => { persistVisits(true); process.exit(0); });
+    }
 }
 
 module.exports = app;
