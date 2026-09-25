@@ -576,10 +576,7 @@
      hanya menghitung sesi aktif (heartbeat 30 dtk) dan total kunjungan.
      Tanpa cookie, tanpa IP, tanpa pihak ketiga. */
   (() => {
-    const onlineEl = $("visitOnline");
-    const totalEl = $("visitTotal");
-    if (!onlineEl) return;
-    let sid = "";
+      let sid = "";
     try {
       sid = localStorage.getItem("vt_sid") || "";
       if (!sid) {
@@ -638,8 +635,6 @@
         const res = await fetch("/api/visit?sid=" + encodeURIComponent(sid), { cache: "no-store" });
         const d = await res.json();
         if (d && d.ok) {
-          onlineEl.textContent = d.online;
-          totalEl.textContent = Number(d.total).toLocaleString("id-ID");
           /* section statistik: angka ber-animasi hanya saat terlihat */
           const live = document.querySelector(".stat-live");
           const statsInView = !live || live.classList.contains("in");
