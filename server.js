@@ -644,47 +644,42 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
  * Ping dari frontend membawa session id acak yang dibuat browser user
  * dan tersimpan di localStorage-nya sendiri. Server hanya menghitung:
  *  - online : sesi yang masih berdenyut (heartbeat <= 65 detik)
- *  - total  : jumlah kunjungan (sesi baru) sepanjang waktu
+ *  - total  : jumlah kunjungan (sesi unik) sepanjang waktu
  *
  * Dua mode penyimpanan:
- *  - Upstash Redis (REST) bila env UPSTASH_REDIS_REST_URL/TOKEN ada —
- *    angka persisten & akurat lintas instance (Vercel) dan bertahan
- *    lintas restart/deploy.
+ *  - Neon Postgres (HTTP driver) bila env DATABASE_URL ada — angka
+ *    persisten & akurat lintas instance (Vercel) dan bertahan lintas
+ *    restart/deploy.
  *  - Fallback memori + file data/visits.json (best-effort) untuk lokal
- *    tanpa Redis.
+ *    tanpa DATABASE_URL.
  */
-const REDIS_URL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/+$/, '');
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || '';
-const REDIS_ON = Boolean(REDIS_URL && REDIS_TOKEN);
-
+const { neon, neonConfig } = require('@neondatabase/serverless');
+const NEON_URL = process.env.DATABASE_URL || '';
 const ONLINE_WINDOW_MS = 65000;
+let neonSql = null;
+let neonReady = false;
 
-async function redisCmd(args) {
-    const res = await fetch(REDIS_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(args),
-        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT)
-    });
-    const j = await res.json();
-    if (j.error) throw new Error(j.error);
-    return j.result;
+function getSql() {
+    if (!neonSql) {
+        /* transport HTTP (bukan websocket) — pas untuk serverless */
+        neonConfig.fetchEndpoint = (host) => `https://${host}/sql`;
+        neonConfig.fetchFunction = (url, opts) => fetch(url, { ...opts, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT) });
+        neonSql = neon(NEON_URL);
+    }
+    return neonSql;
 }
 
-async function redisPipeline(commands) {
-    const res = await fetch(`${REDIS_URL}/pipeline`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(commands),
-        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT)
-    });
-    const list = await res.json();
-    const err = list.find((x) => x && x.error);
-    if (err) throw new Error(err.error);
-    return list.map((x) => x.result);
+async function ensureSchema() {
+    if (neonReady) return;
+    const s = getSql();
+    await s.query('CREATE TABLE IF NOT EXISTS vt_sessions (sid text PRIMARY KEY, first_seen timestamptz NOT NULL DEFAULT now(), last_seen timestamptz NOT NULL DEFAULT now())');
+    await s.query('CREATE TABLE IF NOT EXISTS vt_daily (day date PRIMARY KEY, n integer NOT NULL DEFAULT 0)');
+    await s.query('CREATE TABLE IF NOT EXISTS vt_hours (hour integer PRIMARY KEY, n integer NOT NULL DEFAULT 0)');
+    await s.query('CREATE TABLE IF NOT EXISTS vt_meta (key text PRIMARY KEY, value text NOT NULL)');
+    neonReady = true;
 }
 
-/* fallback memori (lokal tanpa Redis) */
+/* fallback memori (lokal tanpa DATABASE_URL) */
 const VISITS_FILE = path.join(__dirname, 'data', 'visits.json');
 const mem = { online: new Map(), total: 0, peak: 0, days: {}, hours: {}, lastSave: 0 };
 try {
@@ -709,53 +704,51 @@ const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1
 
 app.get('/api/visit', async (req, res) => {
     const sid = String(req.query.sid || '').toLowerCase();
-    const now = Date.now();
     const valid = /^[a-f0-9]{8,48}$/.test(sid);
     res.set('Cache-Control', 'no-store');
 
-    if (REDIS_ON) {
+    if (NEON_URL) {
         try {
-            const h = new Date().getHours();
-            const writes = valid ? [
-                ['ZADD', 'vt:online', now, sid],
-                ['ZREMRANGEBYSCORE', 'vt:online', '-inf', String(now - ONLINE_WINDOW_MS)],
-                ['SADD', 'vt:sids', sid],
-                ['INCR', `vt:day:${dayKey()}`],
-                ['EXPIRE', `vt:day:${dayKey()}`, 60 * 60 * 24 * 45],
-                ['HINCRBY', 'vt:hours', String(h), 1],
-                ['EXPIRE', 'vt:hours', 60 * 60 * 24 * 90]
-            ] : [];
-            const results = await redisPipeline([
-                ...writes,
-                ['ZCARD', 'vt:online'],
-                ['SCARD', 'vt:sids'],
-                ['GET', 'vt:peak'],
-                ['HGETALL', 'vt:hours'],
-                ['GET', `vt:day:${dayKey()}`]
-            ]);
-            const tail = results.slice(writes.length);
-            const online = Number(tail[0]) || 0;
-            const total = Number(tail[1]) || 0;
-            const peak = Math.max(Number(tail[2]) || 0, online);
-            const hours = tail[3] || {};
-            if (peak > Number(tail[2]) || 0) redisCmd(['SET', 'vt:peak', String(peak)]).catch(() => {});
+            await ensureSchema();
+            const s = getSql();
+            if (valid) {
+                const ins = await s.query(
+                    'INSERT INTO vt_sessions (sid) VALUES ($1) ON CONFLICT (sid) DO UPDATE SET last_seen = now() RETURNING (xmax = 0) AS inserted',
+                    [sid]);
+                const inserted = ins[0] && ins[0].inserted;
+                if (inserted) {
+                    await s.query('INSERT INTO vt_daily (day, n) VALUES (CURRENT_DATE, 1) ON CONFLICT (day) DO UPDATE SET n = vt_daily.n + 1');
+                    await s.query('INSERT INTO vt_hours (hour, n) VALUES ($1, 1) ON CONFLICT (hour) DO UPDATE SET n = vt_hours.n + 1', [new Date().getHours()]);
+                }
+            }
+            const onlineRow = await s.query("SELECT count(*)::int AS online FROM vt_sessions WHERE last_seen > now() - interval '65 seconds'");
+            const online = onlineRow[0].online;
+            const peakRow = await s.query(
+                "INSERT INTO vt_meta (key, value) VALUES ('peak', $1) ON CONFLICT (key) DO UPDATE SET value = GREATEST(vt_meta.value::int, EXCLUDED.value::int) RETURNING value::int AS peak",
+                [String(online)]);
+            const peak = peakRow[0].peak;
+            const totals = await s.query('SELECT (SELECT count(*)::int FROM vt_sessions) AS total, (SELECT COALESCE(n, 0) FROM vt_daily WHERE day = CURRENT_DATE)::int AS today');
+            const hourRows = await s.query('SELECT hour, n FROM vt_hours');
+            const hours = {};
+            for (const row of hourRows) hours[row.hour] = row.n;
             return res.json({
                 ok: true,
-                store: 'redis',
+                store: 'neon',
                 online,
-                total,
-                today: Number(tail[4]) || 0,
+                total: totals[0].total,
+                today: totals[0].today,
                 peak,
                 hours,
                 uptime: Math.round(process.uptime()),
-                ts: now
+                ts: Date.now()
             });
         } catch (e) {
-            console.log('[visit] redis gagal, fallback memori:', e.message.slice(0, 80));
+            console.log('[visit] neon gagal, fallback memori:', e.message.slice(0, 80));
         }
     }
 
-    /* ---- fallback memori (lokal tanpa Redis) ---- */
+    /* ---- fallback memori (lokal tanpa DATABASE_URL) ---- */
+    const now = Date.now();
     for (const [k, t] of mem.online) if (now - t > ONLINE_WINDOW_MS) mem.online.delete(k);
     if (valid) {
         if (!mem.online.has(sid)) {
@@ -780,7 +773,8 @@ app.get('/api/visit', async (req, res) => {
         uptime: Math.round(process.uptime()),
         ts: now
     });
-});
+}
+);
 
 /*
  * Unduh semua sekaligus: GET /api/zip?d=<token sesi>. Daftar file diambil

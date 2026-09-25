@@ -43,3 +43,7 @@ z2.zip
 
 # runtime data
 data/
+.neon
+
+# neon cli
+.neon/
