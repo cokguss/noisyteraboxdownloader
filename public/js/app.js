@@ -650,6 +650,17 @@
           renderBars(d.hours || {});
           const up = $("statUptime");
           if (up) up.textContent = fmtUptime(Number(d.uptime) || 0);
+          /* indikator mode penyimpanan: 'memory' = DATABASE_URL belum aktif */
+          const foot = document.querySelector(".stats-foot");
+          if (foot) {
+            let note = foot.querySelector(".store-note");
+            if (!note) {
+              note = document.createElement("span");
+              note.className = "store-note";
+              foot.appendChild(note);
+            }
+            note.textContent = d.store === "memory" ? " · penyimpanan: in-memory" : " · penyimpanan: database";
+          }
         }
       } catch { /* server tak terjangkau: biarkan angka lama */ }
     }

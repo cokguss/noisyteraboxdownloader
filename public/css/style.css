@@ -2045,3 +2045,5 @@ html.icon-repair body {
   .stat-bars { gap: 3px; }
   .stat-hours { gap: 3px; font-size: 8.5px; }
 }
+.store-note { font-family: var(--font-mono); font-size: 11px; opacity: 0.75; }
+.store-note::before { content: "·"; margin: 0 6px; opacity: 0.6; }
